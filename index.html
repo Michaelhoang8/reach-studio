@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="A planar robotics studio for joint-limited inverse kinematics, starting-pose comparisons, and Jacobian inspection."
+    />
+    <title>Reach Studio</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span aria-hidden="true">⌁</span> REACH<span class="studio"
+          >STUDIO</span
+        >
+      </div>
+      <p>Motion, one joint at a time.</p>
+      <div class="header-actions">
+        <button id="example">Three-link study</button
+        ><button id="trap">The straight-arm trap</button
+        ><button id="open">Open</button><button id="save" disabled>Save</button
+        ><input id="file" type="file" accept=".json,application/json" hidden />
+      </div>
+    </header>
+    <main>
+      <div class="workbench">
+        <aside>
+          <div class="section-title">
+            <h1>Find a way there.</h1>
+            <p>A planar inverse-kinematics workshop.</p>
+          </div>
+          <form id="controls">
+            <div class="label-row">
+              <h2>01 / Target</h2>
+              <span>length units</span>
+            </div>
+            <div class="pair">
+              <label
+                >X<input
+                  id="target-x"
+                  type="number"
+                  min="-800"
+                  max="800"
+                  step="any"
+                  required /></label
+              ><label
+                >Y<input
+                  id="target-y"
+                  type="number"
+                  min="-800"
+                  max="800"
+                  step="any"
+                  required
+              /></label>
+            </div>
+            <p class="hint">
+              Click the drawing to place a target. Arrow keys move it by 5;
+              Shift + arrow by 1.
+            </p>
+            <div class="label-row">
+              <h2>02 / The arm</h2>
+              <span
+                ><button
+                  id="remove"
+                  type="button"
+                  aria-label="Remove last link"
+                >
+                  −</button
+                ><button id="add" type="button" aria-label="Add link">
+                  +
+                </button></span
+              >
+            </div>
+            <div id="links"></div>
+            <details>
+              <summary>Joint limits & solver settings</summary>
+              <p class="hint">
+                Angles are relative to the preceding link, in degrees. Equal
+                limits lock a joint.
+              </p>
+              <div id="limits"></div>
+              <div class="pair">
+                <label
+                  >Position tolerance<input
+                    id="tolerance"
+                    type="number"
+                    min="0.0001"
+                    max="5"
+                    step="any"
+                    required /></label
+                ><label
+                  >Maximum sweeps<input
+                    id="iterations"
+                    type="number"
+                    min="1"
+                    max="500"
+                    step="1"
+                    required
+                /></label>
+              </div>
+            </details>
+            <button class="primary" id="solve" type="submit">
+              Solve from four poses <span>↗</span>
+            </button>
+            <p id="status" role="status" aria-live="polite">
+              Preparing the arm…
+            </p>
+            <p id="error" role="alert"></p>
+          </form>
+          <div class="small-note">
+            Position only. No collision, dynamics, or hardware control.
+          </div>
+        </aside>
+        <section class="canvas-panel" aria-label="Arm workspace">
+          <div class="canvas-top">
+            <span id="run-label">YOUR POSE</span
+            ><label
+              ><input id="show-mobility" type="checkbox" /> Velocity
+              ellipse</label
+            >
+          </div>
+          <svg
+            id="scene"
+            viewBox="0 0 840 520"
+            tabindex="0"
+            role="application"
+            aria-label="Arm drawing. Click to set target; arrow keys move target by five units, Shift arrows by one."
+          ></svg>
+          <div class="canvas-legend">
+            <span><i class="orange"></i> arm</span
+            ><span><i class="white"></i> target</span
+            ><span><i class="gray"></i> initial pose / tip trail</span>
+          </div>
+          <div class="readout">
+            <div><span>Tip error</span><strong id="tip-error">—</strong></div>
+            <div>
+              <span>Solver outcome</span><strong id="outcome">—</strong>
+            </div>
+            <div>
+              <span>Replay sweep</span><strong id="iteration">—</strong>
+            </div>
+          </div>
+          <div class="transport">
+            <button id="play" aria-label="Play solver replay" disabled>
+              ▶</button
+            ><input
+              type="range"
+              id="step"
+              min="0"
+              max="0"
+              value="0"
+              aria-label="Solver sweep"
+              disabled
+            /><button id="end" disabled>Final pose</button
+            ><button id="use-pose" disabled>Use as start</button>
+          </div>
+          <p class="reach-note" id="reach-note"></p>
+        </section>
+      </div>
+      <section class="alternatives">
+        <div>
+          <h2>A starting pose changes the journey.</h2>
+          <p>Four deterministic attempts. Select one to inspect its path.</p>
+        </div>
+        <div id="runs"></div>
+      </section>
+      <details class="analysis">
+        <summary>Inspect the geometry & solver evidence</summary>
+        <div class="analysis-grid">
+          <section>
+            <h2>At the inspected sweep</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Joint</th>
+                    <th>Angle</th>
+                    <th>Jₓ / rad</th>
+                    <th>Jᵧ / rad</th>
+                  </tr>
+                </thead>
+                <tbody id="joint-data"></tbody>
+              </table>
+            </div>
+          </section>
+          <section>
+            <h2>Local mobility</h2>
+            <p id="mobility"></p>
+            <p>
+              The velocity ellipse maps unit-norm joint rates in radians per
+              second through the position Jacobian. Its drawing is normalized to
+              a fixed major axis; its shape shows directional imbalance, not an
+              absolute speed scale. Joint-limit restrictions are not included in
+              this unconstrained differential diagnostic.
+            </p>
+          </section>
+        </div>
+        <p>
+          CCD visits joints from tip to base. Each update minimizes tip distance
+          over that joint’s permitted interval with other angles fixed. Ten
+          sweeps with improvement at most 10⁻¹⁰ units report a plateau; this
+          does not prove the target is impossible. The radial reach annulus
+          ignores joint limits. A tolerance hit is a position result, not a
+          collision-free motion plan.
+        </p>
+        <div class="exports">
+          <button id="evidence" disabled>Evidence JSON</button
+          ><button id="csv" disabled>Replay CSV</button
+          ><button id="svg" disabled>Drawing SVG</button>
+        </div>
+      </details>
+      <footer>
+        <span>REACH STUDIO / PLANAR ROBOTICS</span
+        ><span>Local computation. Four starts. Every step visible.</span>
+      </footer>
+    </main>
+  </body>
+</html>

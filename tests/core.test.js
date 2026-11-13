@@ -9,6 +9,40 @@ import {
   mobility,
 } from "../core.js";
 const near = (a, b, t = 1e-8) => assert.ok(Math.abs(a - b) < t, `${a} != ${b}`);
+test("recorded coordinate updates beat a dense independent angular scan", () => {
+  for (const m of [
+    example(),
+    trap(),
+    { ...example(), target: { x: -130, y: 90 } },
+    {
+      ...example(),
+      links: example().links.map((l) => ({
+        ...l,
+        min: -50,
+        max: 50,
+        angle: 0,
+      })),
+    },
+  ]) {
+    for (const run of analyze(m).runs) {
+      const q = [...run.start];
+      for (const update of run.updates) {
+        const j = update.joint,
+          link = m.links[j];
+        assert.equal(q[j], update.from);
+        for (let i = 0; i <= 120; i++) {
+          q[j] = link.min + ((link.max - link.min) * i) / 120;
+          const tip = forward(m.links, q).at(-1);
+          assert.ok(
+            Math.hypot(tip.x - m.target.x, tip.y - m.target.y) >=
+              update.errorAfter - 1e-8,
+          );
+        }
+        q[j] = update.to;
+      }
+    }
+  }
+});
 test("forward kinematics and analytic two-link Jacobian agree", () => {
   const links = [{ length: 3 }, { length: 4 }],
     points = forward(links, [90, -90]);

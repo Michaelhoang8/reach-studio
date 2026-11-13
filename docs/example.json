@@ -1,0 +1,29 @@
+{
+  "format": "reach-studio-v1",
+  "links": [
+    {
+      "length": 100,
+      "angle": 25,
+      "min": -150,
+      "max": 150
+    },
+    {
+      "length": 80,
+      "angle": -40,
+      "min": -140,
+      "max": 140
+    },
+    {
+      "length": 60,
+      "angle": 30,
+      "min": -120,
+      "max": 120
+    }
+  ],
+  "target": {
+    "x": 120,
+    "y": 125
+  },
+  "tolerance": 0.05,
+  "iterations": 200
+}
