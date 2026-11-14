@@ -132,10 +132,12 @@ worker.onerror = () => {
   $("error").textContent = "The solver worker stopped. Reload to restart it.";
 };
 function renderRuns() {
+  const focusRun = document.activeElement?.dataset.run;
   $("runs").replaceChildren();
   result.runs.forEach((run, i) => {
     const b = document.createElement("button");
     b.setAttribute("aria-pressed", i === selected);
+    b.dataset.run = i;
     const name = document.createElement("span");
     name.textContent =
       run.name + (i === result.best ? " · lowest final error" : "");
@@ -144,7 +146,26 @@ function renderRuns() {
     const meta = document.createElement("small");
     meta.textContent =
       run.status + " / " + (run.snapshots.length - 1) + " sweeps";
-    b.append(name, error, meta);
+    const plot = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    plot.setAttribute("viewBox", "0 0 240 46");
+    plot.setAttribute("aria-hidden", "true");
+    plot.classList.add("convergence");
+    const maximum = Math.max(...run.snapshots.map((s) => s.error), 1e-12);
+    const path = document.createElementNS(plot.namespaceURI, "polyline");
+    path.setAttribute(
+      "points",
+      run.snapshots
+        .map(
+          (s, j) =>
+            `${2 + (236 * j) / Math.max(1, run.snapshots.length - 1)},${42 - (38 * s.error) / maximum}`,
+        )
+        .join(" "),
+    );
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.6");
+    plot.append(path);
+    b.append(name, error, plot, meta);
     b.onclick = () => {
       stop();
       selected = i;
@@ -154,6 +175,10 @@ function renderRuns() {
     };
     $("runs").append(b);
   });
+  if (focusRun)
+    document
+      .querySelector(`[data-run="${focusRun}"]`)
+      ?.focus({ preventScroll: true });
 }
 function render() {
   if (!result) return;
@@ -190,7 +215,7 @@ function render() {
     step +
     ". Tip error " +
     s.error.toFixed(4) +
-    " units.</title>";
+    ' units.</title><defs><linearGradient id="arm-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffdbac"/><stop offset=".48" stop-color="#f7ad68"/><stop offset="1" stop-color="#cb6b37"/></linearGradient></defs>';
   for (let i = -2; i <= 2; i++) {
     const offset = (i * radius) / 2;
     svg +=
@@ -294,7 +319,7 @@ function render() {
   svg +=
     '<polyline class="arm" points="' +
     points(s.points) +
-    '" fill="none" stroke="#efa064" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>';
+    '" fill="none" stroke="url(#arm-metal)" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>';
   s.points.forEach((p, i) => {
     svg +=
       '<circle cx="' +
@@ -319,7 +344,7 @@ function render() {
     x(target.x) +
     '" cy="' +
     y(target.y) +
-    '" r="11" fill="none" stroke="#e5e7df" stroke-width="1.3"/><path d="M ' +
+    '" r="11" class="target-ring" fill="none" stroke="#e5e7df" stroke-width="1.3"/><path d="M ' +
     (x(target.x) - 17) +
     " " +
     y(target.y) +

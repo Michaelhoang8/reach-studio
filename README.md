@@ -4,6 +4,8 @@ A planar robotics workbench for joint-limited inverse kinematics. Place a target
 
 ![Planar inverse-kinematics studio](docs/workbench.png)
 
+The drawing board keeps configuration in a right-hand rail and compares each starting pose with a tip-error sparkline (independently scaled). The target marker has a subtle opacity pulse, disabled for reduced motion. SVG exports retain the arm gradient and exact inspected geometry.
+
 ## Run
 
 ```sh
